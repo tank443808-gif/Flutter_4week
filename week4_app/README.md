@@ -11,3 +11,9 @@
 - 보여 주기: `Text`, `Icon`, `CircleAvatar`
 - 배치·스크롤: `Row`, `Column`, `ListView`, `Card`
 - 동작·피드백: `ElevatedButton`, `SnackBar`
+
+## 실행화면
+<img width="944" height="518" alt="image" src="https://github.com/user-attachments/assets/46d92cd2-8136-4658-9927-3276be357e28" />
+
+## 버튼 동작
+<img width="937" height="521" alt="image" src="https://github.com/user-attachments/assets/fec0d6d6-babb-4cb5-98d0-9f1ba21ae909" />
