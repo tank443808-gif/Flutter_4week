@@ -1,1 +1,189 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(const ProfileConfirmationApp());
+}
+
+class ProfileConfirmationApp extends StatelessWidget {
+  const ProfileConfirmationApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Profile Confirmation',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      home: const ProfileConfirmationPage(),
+    );
+  }
+}
+
+class ProfileConfirmationPage extends StatefulWidget {
+  const ProfileConfirmationPage({super.key});
+
+  @override
+  State<ProfileConfirmationPage> createState() =>
+      _ProfileConfirmationPageState();
+}
+
+class _ProfileConfirmationPageState extends State<ProfileConfirmationPage> {
+  bool _isConfirmed = false;
+
+  void _toggleConfirmation() {
+    setState(() {
+      _isConfirmed = !_isConfirmed;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusLabel = _isConfirmed ? '확인 완료' : '확인 전';
+
+    return RepaintBoundary(
+      key: const ValueKey('profile-confirmation-screen'),
+      child: Scaffold(
+        appBar: AppBar(title: const Text('프로필 화면'), centerTitle: true),
+        body: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const CircleAvatar(
+                  radius: 34,
+                  backgroundColor: Colors.deepPurple,
+                  child: Icon(Icons.person, size: 36, color: Colors.white),
+                ),
+                const SizedBox(width: 16),
+                const Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '장도겸',
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.school, size: 18, color: Colors.grey),
+                        SizedBox(width: 6),
+                        Text('컴퓨터소프트웨어과'),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const _InfoCard(
+              title: '관심 분야',
+              icon: Icons.favorite,
+              details: ['Flutter UI', '모바일 앱 개발', 'UX 디자인'],
+            ),
+            const SizedBox(height: 12),
+            const _InfoCard(
+              title: '이번 주 목표',
+              icon: Icons.flag,
+              details: ['위젯 조합 연습', '프로필 화면 완성', '피드백 반영'],
+            ),
+            const SizedBox(height: 12),
+            const _InfoCard(
+              title: '연락 방법',
+              icon: Icons.mail,
+              details: [
+                'email: tank443808@g.shingu.ac.kr',
+                'GitHub: tank443808-gif',
+              ],
+            ),
+            const SizedBox(height: 20),
+            Card(
+              child: ListTile(
+                key: const ValueKey('confirmation-status'),
+                leading: Icon(
+                  _isConfirmed
+                      ? Icons.check_circle
+                      : Icons.radio_button_unchecked,
+                  color: _isConfirmed ? Colors.green : Colors.grey,
+                ),
+                title: const Text('프로필 확인 상태'),
+                subtitle: Text(statusLabel),
+              ),
+            ),
+            const SizedBox(height: 12),
+            FilledButton(
+              key: const ValueKey('confirmation-toggle'),
+              onPressed: _toggleConfirmation,
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: Text(_isConfirmed ? '확인 취소' : '프로필 확인'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({
+    required this.title,
+    required this.icon,
+    required this.details,
+  });
+
+  final String title;
+  final IconData icon;
+  final List<String> details;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Colors.deepPurple),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            ...details.map(
+              (detail) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 2),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(
+                      Icons.check_circle,
+                      size: 16,
+                      color: Colors.green,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(detail)),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
