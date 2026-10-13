@@ -88,4 +88,9 @@ No issues found! (ran in 4.0s)
 - [x] 테스트 골든과 AC 연결을 [EVIDENCE_TABLE.md](EVIDENCE_TABLE.md)에 표시
 - [ ] 실기기 화면 캡처, 기기/플랫폼 기록
 - [ ] 요청 A/B 실제 실행·응답·모델명·응답 차이 및 선택 이유 기록
-- [ ] 개인 저장소 여부 확인 후 제출 commit 및 GitHub 링크 기록
+- [x] 개인 저장소 확인 및 제출 커밋 게시
+  - 개인 저장소: `https://github.com/tank443808-gif/Flutter_4week`
+  - 제출 브랜치: `notice-app-assignment`
+  - 코드·테스트 검증 commit: `3ceffdfaaeb1aecc8c1a8cef30d4ff8b85f0159f`
+  - 커밋 링크: https://github.com/tank443808-gif/Flutter_4week/commit/3ceffdfaaeb1aecc8c1a8cef30d4ff8b85f0159f
+  - 원격 `main`에는 후속 주차 변경이 있어 수정하지 않고 별도 브랜치로 게시함.
