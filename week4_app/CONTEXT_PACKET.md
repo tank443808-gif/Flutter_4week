@@ -1,91 +1,91 @@
-# Context Packet: 프로필 확인 상태
+# 공지 앱 제출 기록
 
-## 목표
+## 구현 범위
 
-`lib/main1.dart`에서 프로필 확인과 확인 취소 입력에 반응하는 Flutter 상태 기능을 구현한다. 별도 진입점 `flutter run -t lib/main1.dart`로 실행하며 기존 `lib/main.dart` 화면과 동작은 변경하지 않는다.
+- 실행 파일: `lib/main2.dart`
+- 실행 명령(프로젝트 폴더에서): `flutter run -t lib/main2.dart`
+- 서비스: 외부 연결 없는 `MockNoticeService`; 기본 응답 지연 500ms
+- 패키지: 추가 없음
+- 이전 과제 진입점인 `lib/main.dart`, `lib/main1.dart`은 유지
 
-## 현재 코드와 근거
+모의 서비스는 공지 3개를 반환하고 요청 횟수를 기록한다. 화면의 `모의 실패 예약`은 다음 요청만 실패하도록 설정한다. 실패한 Future는 오류 화면으로 전환되고 재시도 요청은 정상 응답으로 복구된다. 새로고침은 로딩 중 비활성화되며 요청 처리 함수에도 중복 호출 방어가 있다.
 
-- 화면 및 상태 소유자: [`lib/main1.dart`](lib/main1.dart)의 `_ProfileConfirmationPageState`
-- 원본 상태: `_isConfirmed` (`bool`, 초기값 `false`)
-- 입력: `프로필 확인` / `확인 취소` 버튼, 같은 버튼 키 `confirmation-toggle`
-- 계산 표시: 상태에서 매 빌드 시 계산되는 `statusLabel`, 버튼 텍스트 및 아이콘
-- 회귀 검증: [`test/main1_test.dart`](test/main1_test.dart)는 첫 화면, 확인 입력, 취소 입력 후 원복을 검증한다.
-- 기존 앱: `lib/main.dart`은 정적 프로필 화면이며 이번 구현에서 수정하지 않았다.
-- 의존성: Flutter SDK와 `flutter_test`만 사용한다. 외부 상태관리 패키지, 서버, 비동기 처리 없음.
+## AC1–AC5 실제 관측 및 결과
 
-## 상태 계약
+| AC | 관측 가능한 조건 | 결과 | 재현/증거 |
+|---|---|---|---|
+| AC1 | 최초 Future가 끝나기 전 진행 표시와 `요청 횟수: 1` 표시 | 통과 | `flutter test test/main2_test.dart`; `test/goldens/ac1-loading.png` |
+| AC2 | 정상 응답 후 3개 중 공지 제목과 요청 횟수 1 표시 | 통과 | `flutter test test/main2_test.dart`; `test/goldens/ac2-success.png` |
+| AC3 | 실패 주입 요청에서 오류 안내와 재시도 버튼 표시 | 통과 | `flutter test test/main2_test.dart`; `test/goldens/ac3-failure.png` |
+| AC4 | 재시도 중 로딩/요청 횟수 증가 후 정상 공지로 복구 | 통과 | `test/goldens/ac4-retry-loading.png`, `test/goldens/ac4-recovered.png` |
+| AC5 | 로딩 중 새로고침 연속 입력에도 요청 횟수가 2에서 증가하지 않음 | 통과 | `test/goldens/ac5-duplicate-taps.png`; 테스트에서 서비스 카운터도 확인 |
 
-| 구분 | 계약 |
-|---|---|
-| 원본 상태 | `_isConfirmed: bool`, 페이지의 `State`만 소유 |
-| 초기값 | `false` |
-| 이벤트 | 확인 버튼 탭 |
-| 전이 | `false → true`, 다시 탭하면 `true → false` |
-| 계산값 | `확인 전`/`확인 완료`, 버튼 문구, 상태 아이콘 |
-| UI 반영 | `setState`가 재빌드를 요청하고 계산값을 화면에 렌더링 |
-| 중복 저장 금지 | 계산 가능한 문구나 아이콘 상태를 별도 필드로 저장하지 않음 |
+이 AC는 전달받은 과제 설명의 명시 요구(상태 구분, 복구, 요청 횟수, 중복 입력)를 테스트 가능한 형태로 구체화한 것이다. 별도 AC 원문은 제공되지 않았다.
 
-## 이벤트 → 상태 → UI 흐름
+## 비동기 동작에 대한 학습 설명 초안
+
+이 설명은 코드와 실행 로그를 바탕으로 정리한 초안이며, 제출 전에 학습자가 실제로 이해한 표현으로 확인·수정해야 한다.
+
+`_loadNotices`는 요청 시작 전에 로딩 상태를 설정한다. `await fetchNotices()`에 도달하면 Future 완료를 기다리는 동안 현재 호출은 중단되고 Flutter 이벤트 루프는 UI를 그릴 수 있다. Future가 완료되면 다음 문장이 이어서 실행된다. 성공 시 응답을 확인한 뒤 `mounted`를 검사하고 공지와 성공 상태를 한 번에 갱신한다. `Exception`이 발생하면 로그에 오류와 stack trace를 남기고 오류 상태로 표시한다. `finally`에서는 진행 중 잠금을 해제한다.
+
+Future는 한 번 완료되는 비동기 결과를 나타내므로 한 번의 공지 요청에 적합하다. Stream은 여러 시점에 걸친 연속 이벤트(예: 실시간 공지 갱신)에 적합하다. 동시성은 기다리는 동안 다른 작업이 진행되도록 실행을 조율하는 것이고 병렬성은 여러 계산을 실제로 동시에 수행하는 것이다. `async`/`await`는 CPU 계산을 다른 isolate로 옮기지 않는다. 이 앱의 짧은 모의 지연도 CPU 계산 성능 측정이 아니다.
+
+응답 검증은 목록이 비어 있지 않고 각 공지의 제목·본문·날짜가 공백이 아닌지만 확인한다. 정적 모의 응답만 사용하므로 네트워크 가용성, 서버 스키마/신뢰성, 최신성, 실제 요청 지연, 실기기 성능은 검증하지 않는다. Stream 연속 갱신과 isolate 예제는 실행하지 않았다.
+
+## 도구 계약 및 실행 기록
+
+| 도구 | 목적·입력 | 출력·오류 처리 | 권한 및 실제 사용 |
+|---|---|---|---|
+| `MockNoticeService.fetchNotices()` | 입력 없음; 한 번의 비동기 모의 공지 요청 | `Future<List<Notice>>`; 요청 수 증가, 예약된 실패는 `NoticeServiceException`으로 거절, 정상 시 불변 공지 목록 반환 | 앱 내부 모의 서비스; 외부 네트워크/파일 권한 없음. 위젯 테스트에서 호출 수와 성공·실패를 확인 |
+| `MockNoticeService.failNextRequest()` | 입력 없음 | 다음 fetch 한 번만 실패하도록 설정 | 앱의 명시적 시뮬레이션 버튼과 위젯 테스트에서 실행 |
+| `flutter test test/main2_test.dart` | 지정한 위젯 테스트 파일 | AC1–AC5 단언 및 골든 비교; 실패 시 테스트 실패와 종료 코드 비영(0 아님) | 로컬 Flutter 테스트 실행. 최종 실행 원문/종료 코드는 아래 검증 결과에 기록 |
+| `flutter analyze` | Flutter 프로젝트 소스 분석 | 분석 메시지와 종료 코드; 오류/경고 시 비영 종료 코드 | 로컬 정적 분석. 최종 실행 원문/종료 코드는 아래 검증 결과에 기록 |
+| `flutter run -t lib/main2.dart` | 앱 진입점 지정 | 연결한 장치/에뮬레이터에서 앱 실행; 실행 오류는 CLI에 표시 | 이 기록 작성 중 실기기/에뮬레이터 실행은 하지 않음 |
+
+### 검증 결과
+
+정상 테스트 4개가 통과했다. AC3에서 의도적으로 주입한 모의 요청 실패는 오류 화면 전환을 위한 시나리오이며, 테스트 실패가 아니다. 골든 생성 명령과 일반 테스트 명령이 각각 실제 실행됐다.
+
+#### `flutter analyze`
 
 ```text
-초기 진입
-  → _isConfirmed = false
-  → 상태 "확인 전" + 버튼 "프로필 확인" + 미확인 아이콘
-
-"프로필 확인" 탭
-  → setState: _isConfirmed = true
-  → 상태 "확인 완료" + 버튼 "확인 취소" + 완료 아이콘
-
-"확인 취소" 탭
-  → setState: _isConfirmed = false
-  → 상태 "확인 전" + 버튼 "프로필 확인" + 미확인 아이콘
+Analyzing week4_app...
+No issues found! (ran in 4.0s)
 ```
 
-## 프로젝트 컨텍스트 지도
+종료 코드: `0`
+
+#### `flutter test test/main2_test.dart`
 
 ```text
-week4_app/
-├── lib/
-│   ├── main.dart                 기존 정적 프로필 앱 진입점 (변경 없음)
-│   └── main1.dart                과제 앱 진입점, 화면, 상태 및 프로필 표시 데이터
-├── test/
-│   ├── main1_test.dart           버튼 입력 및 초기/확인/취소 원복 골든 테스트
-│   └── goldens/
-│       ├── confirmation-initial.png      초기 UI 캡처
-│       ├── confirmation-completed.png    확인 완료 UI 캡처
-│       └── confirmation-restored.png     취소 원복 UI 캡처
-├── evidence/
-│   └── initial.png               실행 앱의 초기 화면 캡처
-├── pubspec.yaml                 Flutter 및 flutter_test 의존성
-├── CONTEXT_PACKET.md            목표, 근거, 제약, AC, 상태 흐름
-└── PROMPT_COMPARISON.md         요청 A/B의 관찰 기록과 미검증 범위
+00:00 +0: loading C:/Flutter_4week/week4_app/test/main2_test.dart
+00:00 +0: AC1: shows loading before the first mock response
+00:01 +1: AC2: renders validated notices after a successful request
+00:01 +2: AC3-AC4: shows failure, retries, and recovers successfully
+공지 요청 실패: 모의 요청이 실패했습니다.
+#0      MockNoticeService.fetchNotices (package:week4_app/main2.dart:66:7)
+<asynchronous suspension>
+#1      _NoticePageState._loadNotices (package:week4_app/main2.dart:140:23)
+<asynchronous suspension>
+
+00:01 +3: AC5: repeated refresh taps during loading make one request
+00:02 +4: All tests passed!
 ```
 
-## 제약
+종료 코드: `0`
 
-- 명령은 Windows 일반 명령 프롬프트에서 실행 가능해야 한다.
-- 구현은 `main1.dart` 진입점에 한정하고 기존 `main.dart`을 보존한다.
-- 상태 기능은 동기식 로컬 UI 상태로 유지한다.
-- 위젯 골든은 Flutter 테스트 렌더러의 한글 글꼴 부재로 한글 글리프가 네모로 보일 수 있다. 실행 앱의 초기 화면은 `evidence/initial.png`로 보완하고, 버튼 입력 및 세 상태 전이는 위젯 테스트로 검증한다.
-- A/B 요청 결과는 실제로 두 요청을 실행해 관찰한 경우에만 비교한다.
+#### 골든 이미지 생성
 
-## 인수 조건 및 검증 연결
+실행 명령: `flutter test test/main2_test.dart --update-goldens`
 
-| AC | 인수 조건 | 검증 근거 |
-|---|---|---|
-| AC1 | 초기값과 첫 화면이 일치한다. | `_isConfirmed = false`; 테스트의 `확인 전`/`프로필 확인` 기대값 |
-| AC2 | 한 번 입력하면 상태와 화면이 함께 바뀐다. | `setState`; 테스트의 `확인 완료`/`확인 취소` 기대값 |
-| AC3 | 역동작으로 값과 화면이 함께 원복된다. | 동일 버튼 재탭; 테스트가 초기 표시를 다시 확인 |
-| AC4 | 계산 표시값을 별도 원본으로 중복 저장하지 않는다. | 문구/아이콘은 `_isConfirmed`에서 빌드 시 계산 |
-| AC5 | 문서의 파일·제약·AC가 실제 프로젝트와 일치한다. | 저장소 파일 및 아래 검증 결과 대조 |
-| AC6 | 요청 A/B를 같은 기준으로 비교하고 미확인을 구분한다. | `PROMPT_COMPARISON.md`는 미검증을 구분하지만 두 요청의 실제 비교는 미수행이므로 미충족 |
-| AC7 | 기능, 문서, 화면 증거, 분석 결과가 같은 기능을 가리킨다. | 실행 앱 초기 캡처와 세 상태 골든, 분석 및 위젯 테스트 기록 |
+결과 원문: `All tests passed!` (4 tests)
 
-## 검증 기록
+종료 코드: `0`; AC별 PNG 파일이 `test/goldens/`에 생성됨.
 
-- 실행 명령: `flutter analyze`, `flutter test test/main1_test.dart --update-goldens`, `flutter test test/main1_test.dart`
-- 분석 결과: `flutter analyze` — No issues found.
-- 위젯 테스트 결과: `flutter test test/main1_test.dart --update-goldens` 및 일반 `flutter test test/main1_test.dart` 모두 통과.
-- 화면 증거: `evidence/initial.png`는 실행 앱 캡처이며 `test/goldens/`의 세 PNG는 동일 위젯 테스트에서 초기·완료·원복 시점에 생성된다. 골든의 한글 글리프 렌더링 제약은 위에 명시했다.
-- 제출 설명: 상태는 `_ProfileConfirmationPageState`가 소유한다. AI에 과제 요구, 기존 앱 구조, 실행 진입점 및 인수 조건을 제공해 범위와 검증 기준을 정했다. 초기/변경/원복은 AC1~AC3, 상태 파생 및 테스트는 AC4를 확인한다. 다음 수정 전 `main1.dart`, `main1_test.dart`, 이 문서, `PROMPT_COMPARISON.md`를 다시 읽는다.
+## 재현 및 기록 상태
+
+- [x] 요청 A/B를 실행하지 않은 사실을 [PROMPT_COMPARISON.md](PROMPT_COMPARISON.md)에 표시
+- [x] 테스트 골든과 AC 연결을 [EVIDENCE_TABLE.md](EVIDENCE_TABLE.md)에 표시
+- [ ] 실기기 화면 캡처, 기기/플랫폼 기록
+- [ ] 요청 A/B 실제 실행·응답·모델명·응답 차이 및 선택 이유 기록
+- [ ] 개인 저장소 여부 확인 후 제출 commit 및 GitHub 링크 기록
